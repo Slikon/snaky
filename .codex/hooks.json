@@ -1,9 +1,0 @@
-{
-  "description": "Launch Agent Snake while Codex works.",
-  "hooks": {
-    "UserPromptSubmit": [{ "hooks": [{ "type": "command", "command": "node \"$(git rev-parse --show-toplevel)/scripts/agent-hook.mjs\" codex start", "timeout": 3 }] }],
-    "PermissionRequest": [{ "hooks": [{ "type": "command", "command": "node \"$(git rev-parse --show-toplevel)/scripts/agent-hook.mjs\" codex attention", "timeout": 1 }] }],
-    "Interrupt": [{ "hooks": [{ "type": "command", "command": "node \"$(git rev-parse --show-toplevel)/scripts/agent-hook.mjs\" codex interrupt", "timeout": 1 }] }],
-    "Stop": [{ "hooks": [{ "type": "command", "command": "node \"$(git rev-parse --show-toplevel)/scripts/agent-hook.mjs\" codex stop", "timeout": 1 }] }]
-  }
-}

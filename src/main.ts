@@ -33,7 +33,7 @@ let integrationError = "";
 document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
   <main class="terminal" aria-label="Agent Snake terminal">
     <header>
-      <div>AGENT-SNAKE.EXE <span class="dim">v0.2.0</span></div>
+      <div>AGENT-SNAKE.EXE <span class="dim">v0.3.0</span></div>
       <div class="right">LINK: <span id="agent">CODEX</span></div>
     </header>
     <div class="rule">================================================================================</div>

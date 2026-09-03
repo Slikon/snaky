@@ -1,6 +1,6 @@
 [package]
 name = "agent-snake"
-version = "0.2.0"
+version = "0.3.0"
 description = "A terminal-style Snake game for coding-agent wait time"
 authors = ["Agent Snake contributors"]
 edition = "2021"
