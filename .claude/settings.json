@@ -1,0 +1,7 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [{ "hooks": [{ "type": "command", "command": "node", "args": ["${CLAUDE_PROJECT_DIR}/scripts/agent-hook.mjs", "claude", "start"], "timeout": 3 }] }],
+    "PermissionRequest": [{ "hooks": [{ "type": "command", "command": "node", "args": ["${CLAUDE_PROJECT_DIR}/scripts/agent-hook.mjs", "claude", "attention"], "timeout": 1 }] }],
+    "Stop": [{ "hooks": [{ "type": "command", "command": "node", "args": ["${CLAUDE_PROJECT_DIR}/scripts/agent-hook.mjs", "claude", "stop"], "timeout": 1 }] }]
+  }
+}
