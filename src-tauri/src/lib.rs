@@ -8,6 +8,10 @@ use tokio::{
     time::{sleep, Duration},
 };
 
+mod hook;
+
+pub use hook::run as run_hook;
+
 const EVENT_ADDRESS: &str = "127.0.0.1:49271";
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
