@@ -81,7 +81,7 @@ function render(): void {
 }
 
 function keyDirection(key: string): Direction | undefined {
-  return {
+  const directions: Record<string, Direction> = {
     ArrowUp: "up",
     w: "up",
     ArrowDown: "down",
@@ -90,7 +90,8 @@ function keyDirection(key: string): Direction | undefined {
     a: "left",
     ArrowRight: "right",
     d: "right",
-  }[key];
+  };
+  return directions[key];
 }
 
 window.addEventListener("keydown", (event) => {
