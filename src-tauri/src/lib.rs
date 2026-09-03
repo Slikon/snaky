@@ -9,6 +9,7 @@ use tokio::{
 };
 
 mod hook;
+mod integrations;
 
 pub use hook::run as run_hook;
 
@@ -97,6 +98,11 @@ pub fn run() {
             tauri::async_runtime::spawn(run_event_server(handle));
             Ok(())
         })
+        .invoke_handler(tauri::generate_handler![
+            integrations::integration_status,
+            integrations::install_integrations,
+            integrations::uninstall_integrations
+        ])
         .run(tauri::generate_context!())
         .expect("error while running Agent Snake");
 }
