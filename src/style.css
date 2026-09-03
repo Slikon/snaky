@@ -1,5 +1,116 @@
 :root {
-  font-family: monospace;
+  font-family: "SFMono-Regular", "Cascadia Mono", Consolas, "Liberation Mono", monospace;
   color: #42ff76;
   background: #010401;
+  font-synthesis: none;
+  text-rendering: geometricPrecision;
+}
+
+* { box-sizing: border-box; }
+
+html, body, #app { width: 100%; height: 100%; margin: 0; overflow: hidden; }
+
+body {
+  background: #010401;
+  text-shadow: 0 0 5px rgba(66, 255, 118, 0.55);
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.018) 0,
+    rgba(255, 255, 255, 0.018) 1px,
+    rgba(0, 0, 0, 0.10) 2px,
+    rgba(0, 0, 0, 0.10) 4px
+  );
+}
+
+.terminal {
+  width: 100%;
+  height: 100%;
+  padding: 22px 26px 18px;
+  display: grid;
+  grid-template-rows: auto auto auto 1fr auto auto;
+  gap: 9px;
+  border: 2px solid #1cb94b;
+  background:
+    radial-gradient(ellipse at center, rgba(18, 80, 34, 0.17), transparent 68%),
+    #010601;
+}
+
+header, footer, .telemetry {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+header { font-size: clamp(14px, 2.1vw, 20px); }
+header .right { margin-left: auto; }
+.dim { color: #188b39; }
+.rule { color: #15973b; overflow: hidden; white-space: nowrap; }
+
+.telemetry {
+  justify-content: space-between;
+  color: #1cb94b;
+  font-size: clamp(10px, 1.35vw, 14px);
+}
+
+.telemetry b { color: #66ff8d; }
+
+.screen {
+  min-height: 0;
+  display: grid;
+  place-items: center;
+  position: relative;
+  border: 1px solid #116f2c;
+  box-shadow: inset 0 0 24px rgba(20, 164, 58, 0.12);
+  overflow: hidden;
+}
+
+#board {
+  margin: 0;
+  color: #42ff76;
+  font-size: clamp(13px, min(2.2vw, 3.15vh), 24px);
+  line-height: 1;
+  letter-spacing: 0;
+  user-select: none;
+}
+
+.message {
+  display: none;
+  position: absolute;
+  min-width: 34ch;
+  padding: 14px 18px;
+  color: #8affaa;
+  background: #010601;
+  border: 1px solid #42ff76;
+  text-align: center;
+  white-space: pre-line;
+  line-height: 1.6;
+  box-shadow: 0 0 16px rgba(66, 255, 118, 0.23);
+}
+
+.message.visible { display: block; }
+
+footer {
+  justify-content: space-between;
+  color: #27c653;
+  font-size: clamp(9px, 1.2vw, 12px);
+}
+
+.cursor { animation: blink 0.75s steps(1) infinite; }
+
+@keyframes blink { 50% { opacity: 0; } }
+
+@media (max-width: 760px) {
+  .terminal { padding: 14px; }
+  .telemetry { gap: 8px; }
+  footer span:nth-child(2) { display: none; }
 }
