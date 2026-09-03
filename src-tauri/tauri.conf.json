@@ -29,6 +29,7 @@
   "bundle": {
     "active": true,
     "targets": "all",
+    "icon": ["icons/icon.png"],
     "shortDescription": "Terminal Snake while your coding agent works"
   }
 }
