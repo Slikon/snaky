@@ -35,7 +35,7 @@ body::before {
   height: 100%;
   padding: 22px 26px 18px;
   display: grid;
-  grid-template-rows: auto auto auto 1fr auto auto;
+  grid-template-rows: auto auto auto auto 1fr auto auto;
   gap: 9px;
   border: 2px solid #1cb94b;
   background:
@@ -43,7 +43,7 @@ body::before {
     #010601;
 }
 
-header, footer, .telemetry {
+header, footer, .telemetry, .integrations {
   display: flex;
   align-items: center;
   gap: 28px;
@@ -63,6 +63,50 @@ header .right { margin-left: auto; }
 }
 
 .telemetry b { color: #66ff8d; }
+
+.integrations {
+  min-width: 0;
+  padding: 6px 8px;
+  border: 1px dashed #116f2c;
+  color: #1cb94b;
+  font-size: clamp(9px, 1.15vw, 12px);
+}
+
+.integrations b { color: #8affaa; }
+
+.hook-details {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hook-actions {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+button {
+  padding: 3px 7px;
+  border: 1px solid #188b39;
+  color: #42ff76;
+  background: #010601;
+  font: inherit;
+  text-shadow: inherit;
+  cursor: pointer;
+}
+
+button:hover, button:focus-visible {
+  color: #010601;
+  background: #42ff76;
+  outline: none;
+}
+
+button:disabled {
+  opacity: 0.45;
+  cursor: wait;
+}
 
 .screen {
   min-height: 0;
@@ -112,5 +156,6 @@ footer {
 @media (max-width: 760px) {
   .terminal { padding: 14px; }
   .telemetry { gap: 8px; }
+  .hook-details { display: none; }
   footer span:nth-child(2) { display: none; }
 }

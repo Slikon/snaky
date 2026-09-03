@@ -1,4 +1,5 @@
 import { listen } from "@tauri-apps/api/event";
+import { invoke } from "@tauri-apps/api/core";
 import { Direction, SnakeGame } from "./game";
 import "./style.css";
 
@@ -9,9 +10,25 @@ interface AgentEvent {
   turn_id: string;
 }
 
+interface IntegrationState {
+  name: string;
+  configPath: string;
+  detected: boolean;
+  installed: boolean;
+}
+
+interface IntegrationReport {
+  codex: IntegrationState;
+  claude: IntegrationState;
+  executablePath: string;
+}
+
 const game = new SnakeGame();
 const activeTurns = new Set<string>();
 let agent = "CODEX";
+let integrationReport: IntegrationReport | undefined;
+let integrationBusy = false;
+let integrationError = "";
 
 document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
   <main class="terminal" aria-label="Agent Snake terminal">
@@ -24,6 +41,14 @@ document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
       <span>STATUS: <b id="status">IDLE / WAITING FOR PROMPT</b></span>
       <span>SCORE: <b id="score">00000</b></span>
       <span>JOBS: <b id="jobs">00</b></span>
+    </section>
+    <section class="integrations" aria-label="Global agent integrations">
+      <span>GLOBAL HOOKS: <b id="hook-status">CHECKING...</b></span>
+      <span id="hook-details" class="hook-details">CODEX: -- / CLAUDE: --</span>
+      <div class="hook-actions">
+        <button id="install-hooks" type="button">[I] INSTALL / REPAIR</button>
+        <button id="remove-hooks" type="button">[U] UNINSTALL</button>
+      </div>
     </section>
     <section class="screen">
       <pre id="board" aria-label="Snake board"></pre>
@@ -45,6 +70,10 @@ const score = document.querySelector<HTMLElement>("#score")!;
 const jobs = document.querySelector<HTMLElement>("#jobs")!;
 const agentLabel = document.querySelector<HTMLElement>("#agent")!;
 const message = document.querySelector<HTMLElement>("#message")!;
+const hookStatus = document.querySelector<HTMLElement>("#hook-status")!;
+const hookDetails = document.querySelector<HTMLElement>("#hook-details")!;
+const installHooks = document.querySelector<HTMLButtonElement>("#install-hooks")!;
+const removeHooks = document.querySelector<HTMLButtonElement>("#remove-hooks")!;
 
 const statusText = (): string => {
   const labels = {
@@ -59,6 +88,13 @@ const statusText = (): string => {
 };
 
 const messageText = (): string => {
+  if (
+    game.phase === "waiting" &&
+    integrationReport &&
+    (!integrationReport.codex.installed || !integrationReport.claude.installed)
+  ) {
+    return "[ FIRST RUN ]\nINSTALL GLOBAL HOOKS ABOVE";
+  }
   const labels = {
     waiting: "[ READY ]\nSUBMIT A PROMPT OR PRESS SPACE",
     running: "",
@@ -69,6 +105,55 @@ const messageText = (): string => {
   };
   return labels[game.phase];
 };
+
+function renderIntegrations(): void {
+  installHooks.disabled = integrationBusy;
+  removeHooks.disabled = integrationBusy;
+  if (integrationBusy) {
+    hookStatus.textContent = "WORKING...";
+    return;
+  }
+  if (integrationError) {
+    hookStatus.textContent = "ERROR";
+    hookDetails.textContent = integrationError;
+    return;
+  }
+  if (!integrationReport) {
+    hookStatus.textContent = "CHECKING...";
+    return;
+  }
+  const { codex, claude } = integrationReport;
+  hookStatus.textContent = codex.installed && claude.installed ? "ONLINE" : "SETUP REQUIRED";
+  hookDetails.textContent = `CODEX: ${codex.installed ? "ON" : "OFF"} / CLAUDE: ${claude.installed ? "ON" : "OFF"}`;
+}
+
+async function refreshIntegrations(): Promise<void> {
+  try {
+    integrationReport = await invoke<IntegrationReport>("integration_status");
+    integrationError = "";
+  } catch (error) {
+    integrationError = String(error);
+  }
+  renderIntegrations();
+  render();
+}
+
+async function updateIntegrations(command: "install_integrations" | "uninstall_integrations"): Promise<void> {
+  integrationBusy = true;
+  integrationError = "";
+  renderIntegrations();
+  try {
+    integrationReport = await invoke<IntegrationReport>(command);
+  } catch (error) {
+    integrationError = String(error);
+  }
+  integrationBusy = false;
+  renderIntegrations();
+  render();
+}
+
+installHooks.addEventListener("click", () => void updateIntegrations("install_integrations"));
+removeHooks.addEventListener("click", () => void updateIntegrations("uninstall_integrations"));
 
 function render(): void {
   board.textContent = game.render();
@@ -130,4 +215,6 @@ function tick(): void {
 }
 
 render();
+renderIntegrations();
+void refreshIntegrations();
 tick();
