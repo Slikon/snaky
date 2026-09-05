@@ -1,12 +1,10 @@
 # Agent Snake
 
-A terminal-style Snake game that opens while Codex or Claude Code is working. The MVP targets macOS.
+A small Snake companion for macOS while Codex or Claude Code works.
 
-## How it works
+Submitting a prompt shows a tiny snake in the corner with an **⌥ ⇧ S** badge. Press **Option + Shift + S** (Alt + Shift + S), or click the snake, to open the compact translucent game popup. It never opens the full game automatically. **Esc** collapses it back to the corner. Move with the arrow keys or WASD; Space pauses or restarts. Hook settings live behind the gear icon.
 
-Agent Snake installs marked hooks into `~/.codex/hooks.json` and `~/.claude/settings.json`. A hook starts the app or sends it a local lifecycle event through `127.0.0.1:49271`. The game opens when a prompt starts and minimizes when the turn finishes, is interrupted, or needs attention.
-
-The hook bridge is part of the Rust application binary, so users do not need Node.js. The game and terminal interface remain TypeScript.
+The game steps aside when the agent finishes, is interrupted, or actually needs your input. Codex’s automatic approval review does not count as a request for your attention. A read-only observer uses a compatible running Codex app-server proxy to confirm `waitingOnApproval`; without that connection, it does not guess whether approval is needed. Blocking `request_user_input` hooks still signal questions. Claude Code uses the `permission_prompt` notification and `AskUserQuestion` hooks, rather than the predecision `PermissionRequest` event.
 
 ## Install locally
 
@@ -15,9 +13,9 @@ npm install
 npm run tauri build
 ```
 
-Move `src-tauri/target/release/bundle/macos/Agent Snake.app` to `/Applications`, open it once, then select **Install / Repair**. Codex may ask you to review and trust the new global hooks.
+Move `src-tauri/target/release/bundle/macos/Agent Snake.app` to `/Applications`, open it once, then use the gear menu’s **Connect / repair**. Run Connect / repair when updating from an earlier version to replace the old attention hooks. Codex may ask you to review and trust the global hooks.
 
-The installer preserves unrelated settings and creates a one-time `.agent-snake.backup` beside each existing configuration file. **Uninstall** removes only Agent Snake's marked hooks.
+The installer updates `~/.codex/hooks.json` and `~/.claude/settings.json`, preserves unrelated settings and hook commands, and creates a one-time `.agent-snake.backup` beside each existing file. **Disconnect** removes only Agent Snake’s marked hooks. The hook bridge is bundled in the application; users do not need Node.js.
 
 ## Develop
 
@@ -25,10 +23,10 @@ The installer preserves unrelated settings and creates a one-time `.agent-snake.
 npm run tauri dev
 ```
 
-Run the lightweight checks with:
+Run checks with:
 
 ```sh
 npm test
 npm run build
-cargo check --manifest-path src-tauri/Cargo.toml
+cargo test --manifest-path src-tauri/Cargo.toml
 ```

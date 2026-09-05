@@ -33,14 +33,17 @@ struct Integration {
 
 const CODEX_EVENTS: &[(&str, &str, u64)] = &[
     ("UserPromptSubmit", "start", 3),
-    ("PermissionRequest", "attention", 1),
+    ("PreToolUse", "question", 1),
+    ("PostToolUse", "resume", 1),
     ("Interrupt", "interrupt", 1),
     ("Stop", "stop", 1),
 ];
 
 const CLAUDE_EVENTS: &[(&str, &str, u64)] = &[
     ("UserPromptSubmit", "start", 3),
-    ("PermissionRequest", "attention", 1),
+    ("Notification", "notification", 1),
+    ("PreToolUse", "question", 1),
+    ("PostToolUse", "resume", 1),
     ("Stop", "stop", 1),
 ];
 
@@ -84,13 +87,23 @@ fn hook_command(executable: &Path, source: &str, action: &str) -> String {
 }
 
 fn hook_group(executable: &Path, source: &str, action: &str, timeout: u64) -> Value {
-    json!({
+    let mut group = json!({
         "hooks": [{
             "type": "command",
             "command": hook_command(executable, source, action),
             "timeout": timeout
         }]
-    })
+    });
+    let matcher = match (source, action) {
+        ("codex", "question" | "resume") => Some("request_user_input"),
+        ("claude", "question" | "resume") => Some("AskUserQuestion"),
+        ("claude", "notification") => Some("permission_prompt"),
+        _ => None,
+    };
+    if let Some(matcher) = matcher {
+        group["matcher"] = json!(matcher);
+    }
+    group
 }
 
 fn read_config(path: &Path) -> Result<Value, String> {
@@ -115,17 +128,10 @@ fn hooks_object_mut(config: &mut Value) -> Result<&mut Map<String, Value>, Strin
         .ok_or_else(|| "The existing `hooks` setting must be a JSON object".to_string())
 }
 
-fn is_managed_group(group: &Value) -> bool {
-    group
-        .get("hooks")
-        .and_then(Value::as_array)
-        .is_some_and(|hooks| {
-            hooks.iter().any(|hook| {
-                hook.get("command")
-                    .and_then(Value::as_str)
-                    .is_some_and(|command| command.starts_with(MARKER))
-            })
-        })
+fn is_managed_hook(hook: &Value) -> bool {
+    hook.get("command")
+        .and_then(Value::as_str)
+        .is_some_and(|command| command.starts_with(MARKER))
 }
 
 fn remove_managed_hooks(config: &mut Value) -> Result<(), String> {
@@ -142,8 +148,18 @@ fn remove_managed_hooks(config: &mut Value) -> Result<(), String> {
         let Some(groups) = groups.as_array_mut() else {
             return true;
         };
-        groups.retain(|group| !is_managed_group(group));
-        !groups.is_empty()
+        let had_groups = !groups.is_empty();
+        groups.retain_mut(|group| {
+            let Some(commands) = group.get_mut("hooks").and_then(Value::as_array_mut) else {
+                return true;
+            };
+            let original_count = commands.len();
+            commands.retain(|command| !is_managed_hook(command));
+            // A matcher can contain both our command and someone else's hooks.
+            // Remove the group only when removing our commands emptied it.
+            !commands.is_empty() || original_count == 0
+        });
+        !had_groups || !groups.is_empty()
     });
     Ok(())
 }
@@ -195,28 +211,34 @@ fn is_installed(integration: &Integration, executable: &Path) -> Result<bool, St
         return Ok(false);
     }
     let config = read_config(&integration.config_path)?;
+    Ok(has_current_hooks(&config, integration, executable))
+}
+
+fn has_current_hooks(config: &Value, integration: &Integration, executable: &Path) -> bool {
     let Some(hooks) = config.get("hooks").and_then(Value::as_object) else {
-        return Ok(false);
+        return false;
     };
-    Ok(integration.events.iter().all(|(event, action, _)| {
-        let expected = hook_command(executable, integration.source, action);
-        hooks
-            .get(*event)
-            .and_then(Value::as_array)
-            .is_some_and(|groups| {
-                groups.iter().any(|group| {
-                    group
-                        .get("hooks")
-                        .and_then(Value::as_array)
-                        .is_some_and(|commands| {
-                            commands.iter().any(|command| {
-                                command.get("command").and_then(Value::as_str)
-                                    == Some(expected.as_str())
-                            })
-                        })
-                })
-            })
-    }))
+    let mut installed = Vec::new();
+    for (event, groups) in hooks {
+        for group in groups.as_array().into_iter().flatten() {
+            for command in group.get("hooks").and_then(Value::as_array).into_iter().flatten() {
+                if is_managed_hook(command) {
+                    installed.push((event.as_str(), group.get("matcher"), command));
+                }
+            }
+        }
+    }
+    // Check the complete managed set: stale PermissionRequest hooks, duplicates,
+    // outdated executable paths, and broad/missing matchers must offer Repair.
+    installed.len() == integration.events.len()
+        && integration.events.iter().all(|(event, action, timeout)| {
+            let expected = hook_group(executable, integration.source, action, *timeout);
+            installed.iter().filter(|(actual_event, matcher, command)| {
+                actual_event == event
+                    && *matcher == expected.get("matcher")
+                    && **command == expected["hooks"][0]
+            }).count() == 1
+        })
 }
 
 fn report() -> Result<IntegrationReport, String> {
@@ -267,4 +289,101 @@ pub fn uninstall_integrations() -> Result<IntegrationReport, String> {
         write_config(&integration.config_path, &config)?;
     }
     report()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn integration(source: &'static str) -> Integration {
+        Integration {
+            name: source,
+            source,
+            config_path: PathBuf::new(),
+            events: if source == "codex" { CODEX_EVENTS } else { CLAUDE_EVENTS },
+        }
+    }
+
+    #[test]
+    fn migration_and_uninstall_preserve_unrelated_hooks_in_shared_groups() {
+        let executable = Path::new("/Applications/Agent Snake.app/Contents/MacOS/agent-snake");
+        for source in ["codex", "claude"] {
+            let integration = integration(source);
+            let unrelated = json!({
+                "theme": "light",
+                "permissions": { "allow": ["Read"] },
+                "hooks": {
+                    "PermissionRequest": [{
+                        "matcher": "Bash",
+                        "customField": "keep",
+                        "hooks": [{ "type": "command", "command": "other-tool notify" }]
+                    }],
+                    "Stop": [{ "hooks": [{ "type": "command", "command": "other-tool finish" }] }],
+                    "CustomEvent": []
+                }
+            });
+            let mut config = unrelated.clone();
+            config["hooks"]["PermissionRequest"][0]["hooks"].as_array_mut().unwrap()
+                .push(json!({ "type": "command", "command": hook_command(executable, source, "attention"), "timeout": 1 }));
+            assert!(!has_current_hooks(&config, &integration, executable));
+            add_hooks(&mut config, &integration, executable).unwrap();
+            assert!(has_current_hooks(&config, &integration, executable));
+            assert_eq!(config["hooks"]["PermissionRequest"], unrelated["hooks"]["PermissionRequest"]);
+            let once = config.clone();
+            add_hooks(&mut config, &integration, executable).unwrap();
+            assert_eq!(config, once, "repair must be idempotent");
+            remove_managed_hooks(&mut config).unwrap();
+            assert_eq!(config, unrelated);
+            remove_managed_hooks(&mut config).unwrap();
+            assert_eq!(config, unrelated, "uninstall must be idempotent");
+        }
+    }
+
+    #[test]
+    fn installed_status_rejects_stale_and_incorrect_attention_hooks() {
+        let executable = Path::new("/Applications/Agent Snake");
+        for source in ["codex", "claude"] {
+            let integration = integration(source);
+            let mut current = json!({});
+            add_hooks(&mut current, &integration, executable).unwrap();
+            assert!(has_current_hooks(&current, &integration, executable));
+            let expected = if source == "codex" { "request_user_input" } else { "AskUserQuestion" };
+            assert_eq!(current["hooks"]["PreToolUse"][0]["matcher"], expected);
+            assert_eq!(current["hooks"]["PostToolUse"][0]["matcher"], expected);
+            assert!(current["hooks"].get("PermissionRequest").is_none());
+            if source == "claude" {
+                assert_eq!(current["hooks"]["Notification"][0]["matcher"], "permission_prompt");
+            }
+            let mut stale = current.clone();
+            stale["hooks"]["PermissionRequest"] = json!([hook_group(executable, source, "attention", 1)]);
+            assert!(!has_current_hooks(&stale, &integration, executable));
+            for event in ["PreToolUse", "PostToolUse"] {
+                let mut broad = current.clone();
+                broad["hooks"][event][0]["matcher"] = json!(".*");
+                assert!(!has_current_hooks(&broad, &integration, executable));
+                broad["hooks"][event][0].as_object_mut().unwrap().remove("matcher");
+                assert!(!has_current_hooks(&broad, &integration, executable));
+            }
+            let mut duplicate = current.clone();
+            duplicate["hooks"]["Stop"].as_array_mut().unwrap().push(current["hooks"]["Stop"][0].clone());
+            assert!(!has_current_hooks(&duplicate, &integration, executable));
+            assert!(!has_current_hooks(&current, &integration, Path::new("/new/location")));
+        }
+    }
+
+    #[test]
+    fn current_managed_hook_can_share_a_group_with_an_unrelated_command() {
+        let integration = integration("codex");
+        let executable = Path::new("/Applications/Agent Snake");
+        let mut config = json!({});
+        add_hooks(&mut config, &integration, executable).unwrap();
+        config["hooks"]["PreToolUse"][0]["hooks"].as_array_mut().unwrap()
+            .push(json!({ "type": "command", "command": "other-tool question" }));
+        assert!(has_current_hooks(&config, &integration, executable));
+        remove_managed_hooks(&mut config).unwrap();
+        assert_eq!(config["hooks"]["PreToolUse"], json!([{
+            "matcher": "request_user_input",
+            "hooks": [{ "type": "command", "command": "other-tool question" }]
+        }]));
+    }
 }
