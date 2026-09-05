@@ -2,7 +2,7 @@
 name = "agent-snake"
 version = "0.4.0"
 description = "A quiet Snake companion for coding-agent wait time"
-authors = ["Agent Snake contributors"]
+authors = ["Snaky contributors"]
 edition = "2021"
 
 [lib]

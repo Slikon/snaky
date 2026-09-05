@@ -204,7 +204,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![companion_state, ready, open_game, tuck_game, dismiss_companion,
             integrations::integration_status, integrations::install_integrations, integrations::uninstall_integrations])
-        .run(tauri::generate_context!()).expect("error while running Agent Snake");
+        .run(tauri::generate_context!()).expect("error while running Snaky");
 }
 #[cfg(test)]
 mod tests {

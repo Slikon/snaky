@@ -1,4 +1,4 @@
-# Agent Snake
+# Snaky
 
 A small Snake companion for macOS while Codex or Claude Code works.
 
@@ -13,9 +13,9 @@ npm install
 npm run tauri build
 ```
 
-Move `src-tauri/target/release/bundle/macos/Agent Snake.app` to `/Applications`, open it once, then use the gear menu’s **Connect / repair**. Run Connect / repair when updating from an earlier version to replace the old attention hooks. Codex may ask you to review and trust the global hooks.
+Move `src-tauri/target/release/bundle/macos/Snaky.app` to `/Applications`, open it once, then use the gear menu’s **Connect / repair**. Run Connect / repair when updating from an earlier version to replace the old attention hooks. Codex may ask you to review and trust the global hooks.
 
-The installer updates `~/.codex/hooks.json` and `~/.claude/settings.json`, preserves unrelated settings and hook commands, and creates a one-time `.agent-snake.backup` beside each existing file. **Disconnect** removes only Agent Snake’s marked hooks. The hook bridge is bundled in the application; users do not need Node.js.
+The installer updates `~/.codex/hooks.json` and `~/.claude/settings.json`, preserves unrelated settings and hook commands, and creates a one-time `.agent-snake.backup` beside each existing file. **Disconnect** removes only Snaky’s marked hooks. The hook bridge is bundled in the application; users do not need Node.js.
 
 ## Develop
 

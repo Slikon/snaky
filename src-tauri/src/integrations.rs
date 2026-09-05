@@ -72,7 +72,7 @@ fn integrations() -> Result<[Integration; 2], String> {
 }
 
 fn executable_path() -> Result<PathBuf, String> {
-    std::env::current_exe().map_err(|error| format!("Could not locate Agent Snake: {error}"))
+    std::env::current_exe().map_err(|error| format!("Could not locate Snaky: {error}"))
 }
 
 fn shell_quote(path: &Path) -> String {
@@ -306,7 +306,7 @@ mod tests {
 
     #[test]
     fn migration_and_uninstall_preserve_unrelated_hooks_in_shared_groups() {
-        let executable = Path::new("/Applications/Agent Snake.app/Contents/MacOS/agent-snake");
+        let executable = Path::new("/Applications/Snaky.app/Contents/MacOS/agent-snake");
         for source in ["codex", "claude"] {
             let integration = integration(source);
             let unrelated = json!({
@@ -341,7 +341,7 @@ mod tests {
 
     #[test]
     fn installed_status_rejects_stale_and_incorrect_attention_hooks() {
-        let executable = Path::new("/Applications/Agent Snake");
+        let executable = Path::new("/Applications/Snaky");
         for source in ["codex", "claude"] {
             let integration = integration(source);
             let mut current = json!({});
@@ -374,7 +374,7 @@ mod tests {
     #[test]
     fn current_managed_hook_can_share_a_group_with_an_unrelated_command() {
         let integration = integration("codex");
-        let executable = Path::new("/Applications/Agent Snake");
+        let executable = Path::new("/Applications/Snaky");
         let mut config = json!({});
         add_hooks(&mut config, &integration, executable).unwrap();
         config["hooks"]["PreToolUse"][0]["hooks"].as_array_mut().unwrap()

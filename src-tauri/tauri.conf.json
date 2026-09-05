@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Agent Snake",
+  "productName": "Snaky",
   "version": "0.4.0",
-  "identifier": "com.agentsnake.desktop",
+  "identifier": "com.snaky.desktop",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
@@ -13,7 +13,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "Agent Snake",
+        "title": "Snaky",
         "width": 420,
         "height": 520,
         "resizable": false,

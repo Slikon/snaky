@@ -23,7 +23,7 @@ if (launcher) {
   document.querySelector("#pet")!.addEventListener("click", () => void command("open_game"));
   document.querySelector("#dismiss")!.addEventListener("click", () => void command("dismiss_companion"));
 } else {
-  root.innerHTML = `<main class="popup" aria-label="Agent Snake">
+  root.innerHTML = `<main class="popup" aria-label="Snaky">
     <header><div class="identity" id="drag-handle"><span class="mini-snake">${pet}</span><div><h1>Snake</h1><p id="status" aria-live="polite">A little breather</p></div></div><span class="score" aria-label="Score"><span id="score">0</span></span><button id="settings-toggle" class="icon-button" aria-label="Settings" aria-expanded="false" title="Settings">⚙</button><button id="close" class="icon-button" aria-label="Tuck away (Escape)" title="Tuck away · Esc">×</button></header>
     <section class="board-wrap"><canvas id="board" tabindex="0" width="720" height="720" aria-label="Snake game board"></canvas><div id="message" class="message"><strong id="message-title"></strong><span id="message-help"></span></div></section>
     <footer><span><kbd>↑ ↓ ← →</kbd> move</span><span><kbd>Space</kbd> pause</span><button id="restart" title="Restart · R" aria-label="Restart game">↻</button></footer>
