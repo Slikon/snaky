@@ -24,7 +24,7 @@ if (launcher) {
   document.querySelector("#dismiss")!.addEventListener("click", () => void command("dismiss_companion"));
 } else {
   root.innerHTML = `<main class="popup" aria-label="Snaky">
-    <header><div class="identity" id="drag-handle"><span class="mini-snake">${pet}</span><div><h1>Snake</h1><p id="status" aria-live="polite">A little breather</p></div></div><span class="score" aria-label="Score"><span id="score">0</span></span><button id="settings-toggle" class="icon-button" aria-label="Settings" aria-expanded="false" title="Settings">⚙</button><button id="close" class="icon-button" aria-label="Tuck away (Escape)" title="Tuck away · Esc">×</button></header>
+    <header><div class="identity" id="drag-handle"><span class="mini-snake">${pet}</span><div><h1>Snaky</h1><p id="status" aria-live="polite">A little breather</p></div></div><span class="score" aria-label="Score"><span id="score">0</span></span><button id="settings-toggle" class="icon-button" aria-label="Settings" aria-expanded="false" title="Settings">⚙</button><button id="close" class="icon-button" aria-label="Tuck away (Escape)" title="Tuck away · Esc">×</button></header>
     <section class="board-wrap"><canvas id="board" tabindex="0" width="720" height="720" aria-label="Snake game board"></canvas><div id="message" class="message"><strong id="message-title"></strong><span id="message-help"></span></div></section>
     <footer><span><kbd>↑ ↓ ← →</kbd> move</span><span><kbd>Space</kbd> pause</span><button id="restart" title="Restart · R" aria-label="Restart game">↻</button></footer>
     <section id="settings" class="settings" hidden aria-label="Settings"><div class="settings-heading"><h2>Make yourself at home</h2><button id="settings-close" class="icon-button" aria-label="Close settings">×</button></div><p>The little snake appears while your agent works. Open it whenever you feel like a break.</p><div class="setting-row"><span>Open / tuck away</span><kbd id="settings-shortcut">${shortcut}</kbd></div><div class="setting-row"><span>Codex</span><span id="codex-state">Checking…</span></div><div class="setting-row"><span>Claude Code</span><span id="claude-state">Checking…</span></div><p id="integration-message" role="status"></p><div class="settings-actions"><button id="install-hooks">Connect / repair</button><button id="remove-hooks">Disconnect</button></div></section>
@@ -113,18 +113,30 @@ if (!launcher) {
   document.querySelector("#remove-hooks")!.addEventListener("click", () => void integrations("uninstall_integrations"));
   document.querySelector("#drag-handle")!.addEventListener("mousedown", event => { if (native && (event as MouseEvent).button === 0) void getCurrentWindow().startDragging(); });
   const directions: Record<string, Direction> = { ArrowUp:"up",w:"up",ArrowDown:"down",s:"down",ArrowLeft:"left",a:"left",ArrowRight:"right",d:"right" };
+  let tickTimer: number | undefined;
+  function scheduleTick(): void {
+    if (tickTimer !== undefined) window.clearTimeout(tickTimer);
+    tickTimer = window.setTimeout(tick, Math.max(85, 155 - game.score * 3));
+  }
+  function tick(): void {
+    if (state.gameVisible && !settingsOpen) {game.advance();render();}
+    scheduleTick();
+  }
   window.addEventListener("keydown", event => {
     if (event.key === "Escape") { if (settingsOpen) setSettings(false); else void command("tuck_game"); return; }
     if (settingsOpen || event.altKey || event.metaKey || event.ctrlKey || (event.target as HTMLElement).closest("button")) return;
     const direction = directions[event.key];
-    if (direction) {event.preventDefault();if (game.phase === "waiting") game.reset();game.queue(direction);}
+    if (direction) {
+      event.preventDefault();
+      if (game.phase === "waiting") game.reset();
+      if (game.phase === "running" && game.steer(direction)) {game.advance();scheduleTick();}
+    }
     else if (event.key === " ") {event.preventDefault();game.togglePause();}
     else if (event.key.toLowerCase() === "r") game.reset();
     render();
   });
   window.addEventListener("blur", () => { if (game.phase === "running") {game.phase = "paused";render();} });
   void integrations();
-  function tick(): void { if (state.gameVisible && !settingsOpen) {game.advance();render();} window.setTimeout(tick, Math.max(85, 155 - game.score * 3)); }
   tick();
 }
 function acceptState(next: Snapshot): void {

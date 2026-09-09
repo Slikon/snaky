@@ -26,15 +26,12 @@ const opposites: Record<Direction, Direction> = {
   right: "left",
 };
 
-const maxQueuedTurns = 2;
-
 export class SnakeGame {
   readonly columns: number;
   readonly rows: number;
   snake: Cell[] = [];
   food: Cell = { x: 0, y: 0 };
   direction: Direction = "right";
-  private readonly queuedTurns: Direction[] = [];
   phase: Phase = "waiting";
   score = 0;
 
@@ -48,21 +45,15 @@ export class SnakeGame {
     const center = { x: Math.floor(this.columns / 2), y: Math.floor(this.rows / 2) };
     this.snake = [center, { x: center.x - 1, y: center.y }, { x: center.x - 2, y: center.y }];
     this.direction = "right";
-    this.queuedTurns.length = 0;
     this.score = 0;
     this.food = { x: Math.min(this.columns - 2, center.x + 6), y: center.y };
     this.phase = started ? "running" : "waiting";
   }
 
-  queue(direction: Direction): void {
-    const plannedDirection = this.queuedTurns[this.queuedTurns.length - 1] ?? this.direction;
-    if (
-      direction === plannedDirection ||
-      direction === opposites[plannedDirection] ||
-      this.queuedTurns.length >= maxQueuedTurns
-    ) return;
-
-    this.queuedTurns.push(direction);
+  steer(direction: Direction): boolean {
+    if (direction === this.direction || direction === opposites[this.direction]) return false;
+    this.direction = direction;
+    return true;
   }
 
   togglePause(): void {
@@ -73,7 +64,6 @@ export class SnakeGame {
 
   advance(nextFood?: Cell): void {
     if (this.phase !== "running") return;
-    this.direction = this.queuedTurns.shift() ?? this.direction;
     const vector = vectors[this.direction];
     const head = this.snake[0];
     const next = { x: head.x + vector.x, y: head.y + vector.y };
