@@ -34,6 +34,8 @@ export class SnakeGame {
   direction: Direction = "right";
   phase: Phase = "waiting";
   score = 0;
+  zen = false;
+  record = 0;
 
   constructor(columns = 30, rows = 18) {
     this.columns = columns;
@@ -48,6 +50,7 @@ export class SnakeGame {
     this.score = 0;
     this.food = { x: Math.min(this.columns - 2, center.x + 6), y: center.y };
     this.phase = started ? "running" : "waiting";
+    this.record = Math.max(this.record, this.snake.length);
   }
 
   steer(direction: Direction): boolean {
@@ -67,27 +70,32 @@ export class SnakeGame {
     const vector = vectors[this.direction];
     const head = this.snake[0];
     const next = { x: head.x + vector.x, y: head.y + vector.y };
+    if (this.zen) {
+      next.x = (next.x + this.columns) % this.columns;
+      next.y = (next.y + this.rows) % this.rows;
+    }
     const ate = this.same(next, this.food);
     const occupied = ate ? this.snake : this.snake.slice(0, -1);
+    const bite = occupied.findIndex((cell) => this.same(cell, next));
+    const wall =
+      next.x < 0 || next.x >= this.columns || next.y < 0 || next.y >= this.rows;
 
-    if (
-      next.x < 0 ||
-      next.x >= this.columns ||
-      next.y < 0 ||
-      next.y >= this.rows ||
-      occupied.some((cell) => this.same(cell, next))
-    ) {
-      this.phase = "game-over";
-      return;
-    }
-
-    this.snake.unshift(next);
-    if (ate) {
-      this.score += 1;
-      this.food = nextFood ?? this.randomFreeCell();
+    if (wall || bite >= 0) {
+      if (!this.zen) {
+        this.phase = "game-over";
+        return;
+      }
+      this.snake = [next, ...this.snake.slice(0, bite)];
     } else {
-      this.snake.pop();
+      this.snake.unshift(next);
+      if (ate) {
+        this.score += 1;
+        this.food = nextFood ?? this.randomFreeCell();
+      } else {
+        this.snake.pop();
+      }
     }
+    this.record = Math.max(this.record, this.snake.length);
   }
 
   render(): string {

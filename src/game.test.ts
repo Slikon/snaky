@@ -87,4 +87,52 @@ describe("SnakeGame", () => {
     expect(game.score).toBe(1);
     expect(game.snake).toHaveLength(4);
   });
+
+  it("wraps through walls instead of ending in zen mode", () => {
+    const game = new SnakeGame(12, 12);
+    game.reset();
+    game.zen = true;
+    game.food = { x: 0, y: 0 };
+    for (let i = 0; i < 6; i += 1) game.advance();
+    expect(game.phase).toBe("running");
+    expect(game.snake[0]).toEqual({ x: 0, y: 6 });
+  });
+
+  it("still ends on walls without zen mode", () => {
+    const game = new SnakeGame(12, 12);
+    game.reset();
+    game.food = { x: 0, y: 0 };
+    for (let i = 0; i < 6; i += 1) game.advance();
+    expect(game.phase).toBe("game-over");
+  });
+
+  it("trims the tail instead of ending when biting itself in zen mode", () => {
+    const game = new SnakeGame(12, 12);
+    game.reset();
+    game.zen = true;
+    game.food = { x: 7, y: 6 };
+    game.advance({ x: 1, y: 1 });
+    game.food = { x: 8, y: 6 };
+    game.advance({ x: 1, y: 1 });
+    game.steer("up");
+    game.advance();
+    game.steer("left");
+    game.advance();
+    game.steer("down");
+    game.advance();
+    expect(game.phase).toBe("running");
+    expect(game.snake).toHaveLength(4);
+    expect(game.snake[0]).toEqual({ x: 7, y: 6 });
+  });
+
+  it("keeps the longest tail as the record across resets", () => {
+    const game = new SnakeGame(12, 12);
+    game.reset();
+    game.zen = true;
+    game.food = { x: 7, y: 6 };
+    game.advance({ x: 1, y: 1 });
+    expect(game.record).toBe(4);
+    game.reset();
+    expect(game.record).toBe(4);
+  });
 });

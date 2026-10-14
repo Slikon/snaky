@@ -2,7 +2,7 @@
 
 A small Snake companion for macOS while Codex or Claude Code works.
 
-Submitting a prompt shows a tiny snake in the corner with an **⌥ ⇧ S** badge. Press **Option + Shift + S** (Alt + Shift + S), or click the snake, to open the compact translucent game popup. It never opens the full game automatically. **Esc** collapses it back to the corner. Move with the arrow keys or WASD; Space pauses or restarts. Hook settings live behind the gear icon.
+Submitting a prompt shows a tiny snake in the corner with an **⌥ ⇧ S** badge. Press **Option + Shift + S** (Alt + Shift + S), or click the snake, to open the compact translucent game popup. It never opens the full game automatically. **Esc** collapses it back to the corner. Move with the arrow keys or WASD (physical positions, so any keyboard layout works); Space pauses or restarts. The **Zen** toggle in the footer wraps the walls and trims your tail on bites instead of ending the game; your longest tail is kept as the record. Hook settings live behind the gear icon.
 
 The game steps aside when the agent finishes, is interrupted, or actually needs your input. Codex’s automatic approval review does not count as a request for your attention. A read-only observer uses a compatible running Codex app-server proxy to confirm `waitingOnApproval`; without that connection, it does not guess whether approval is needed. Blocking `request_user_input` hooks still signal questions. Claude Code uses the `permission_prompt` notification and `AskUserQuestion` hooks, rather than the predecision `PermissionRequest` event.
 

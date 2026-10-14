@@ -24,14 +24,15 @@ if (launcher) {
   document.querySelector("#dismiss")!.addEventListener("click", () => void command("dismiss_companion"));
 } else {
   root.innerHTML = `<main class="popup" aria-label="Snaky">
-    <header><div class="identity" id="drag-handle"><span class="mini-snake">${pet}</span><div><h1>Snaky</h1><p id="status" aria-live="polite">A little breather</p></div></div><span class="score" aria-label="Score"><span id="score">0</span></span><button id="settings-toggle" class="icon-button" aria-label="Settings" aria-expanded="false" title="Settings">⚙</button><button id="close" class="icon-button" aria-label="Tuck away (Escape)" title="Tuck away · Esc">×</button></header>
+    <header><div class="identity" id="drag-handle"><span class="mini-snake">${pet}</span><div><h1>Snaky</h1><p id="status" aria-live="polite">A little breather</p></div></div><span class="score" aria-label="Score"><span id="score">0</span><span id="record" class="record" hidden></span></span><button id="settings-toggle" class="icon-button" aria-label="Settings" aria-expanded="false" title="Settings">⚙</button><button id="close" class="icon-button" aria-label="Tuck away (Escape)" title="Tuck away · Esc">×</button></header>
     <section class="board-wrap"><canvas id="board" tabindex="0" width="720" height="720" aria-label="Snake game board"></canvas><div id="message" class="message"><strong id="message-title"></strong><span id="message-help"></span></div></section>
-    <footer><span><kbd>↑ ↓ ← →</kbd> move</span><span><kbd>Space</kbd> pause</span><button id="restart" title="Restart · R" aria-label="Restart game">↻</button></footer>
+    <footer><span><kbd>↑ ↓ ← →</kbd> move</span><span><kbd>Space</kbd> pause</span><button id="zen" class="zen-toggle" aria-pressed="false" title="Zen mode: walls wrap around, bites trim your tail">Zen</button><button id="restart" title="Restart · R" aria-label="Restart game">↻</button></footer>
     <section id="settings" class="settings" hidden aria-label="Settings"><div class="settings-heading"><h2>Make yourself at home</h2><button id="settings-close" class="icon-button" aria-label="Close settings">×</button></div><p>The little snake appears while your agent works. Open it whenever you feel like a break.</p><div class="setting-row"><span>Open / tuck away</span><kbd id="settings-shortcut">${shortcut}</kbd></div><div class="setting-row"><span>Codex</span><span id="codex-state">Checking…</span></div><div class="setting-row"><span>Claude Code</span><span id="claude-state">Checking…</span></div><p id="integration-message" role="status"></p><div class="settings-actions"><button id="install-hooks">Connect / repair</button><button id="remove-hooks">Disconnect</button></div></section>
   </main>`;
 }
 
 const game = new SnakeGame(20, 20);
+game.record = Math.max(game.record, Number(localStorage.getItem("snaky-record")) || 0);
 let settingsOpen = false;
 function render(): void {
   if (launcher) {
@@ -44,6 +45,10 @@ function render(): void {
     return;
   }
   document.querySelector("#score")!.textContent = String(game.score);
+  const record = document.querySelector("#record") as HTMLElement;
+  record.hidden = !game.zen;
+  record.textContent = `best ${game.record}`;
+  localStorage.setItem("snaky-record", String(game.record));
   document.querySelector("#status")!.textContent = state.attention ? "Your agent needs you" : state.working ? `${state.source === "claude" ? "Claude" : "Codex"} is working${state.working > 1 ? ` · ${state.working} tasks` : ""}` : "A little breather";
   document.querySelector("#settings-shortcut")!.textContent = state.shortcutAvailable ? shortcut : "Click the snake";
   const labels: Record<string, [string, string]> = {
@@ -109,6 +114,13 @@ if (!launcher) {
   document.querySelector("#settings-toggle")!.addEventListener("click", () => setSettings(!settingsOpen));
   document.querySelector("#settings-close")!.addEventListener("click", () => setSettings(false));
   document.querySelector("#restart")!.addEventListener("click", () => { game.reset();render();document.querySelector<HTMLCanvasElement>("#board")!.focus(); });
+  const zenToggle = document.querySelector<HTMLButtonElement>("#zen")!;
+  zenToggle.addEventListener("click", () => {
+    game.zen = !game.zen;
+    zenToggle.setAttribute("aria-pressed", String(game.zen));
+    render();
+    document.querySelector<HTMLCanvasElement>("#board")!.focus();
+  });
   document.querySelector("#install-hooks")!.addEventListener("click", () => void integrations("install_integrations"));
   document.querySelector("#remove-hooks")!.addEventListener("click", () => void integrations("uninstall_integrations"));
   document.querySelector("#drag-handle")!.addEventListener("mousedown", event => { if (native && (event as MouseEvent).button === 0) void getCurrentWindow().startDragging(); });
