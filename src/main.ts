@@ -112,7 +112,7 @@ if (!launcher) {
   document.querySelector("#install-hooks")!.addEventListener("click", () => void integrations("install_integrations"));
   document.querySelector("#remove-hooks")!.addEventListener("click", () => void integrations("uninstall_integrations"));
   document.querySelector("#drag-handle")!.addEventListener("mousedown", event => { if (native && (event as MouseEvent).button === 0) void getCurrentWindow().startDragging(); });
-  const directions: Record<string, Direction> = { ArrowUp:"up",w:"up",ArrowDown:"down",s:"down",ArrowLeft:"left",a:"left",ArrowRight:"right",d:"right" };
+  const directions: Record<string, Direction> = { ArrowUp:"up",KeyW:"up",ArrowDown:"down",KeyS:"down",ArrowLeft:"left",KeyA:"left",ArrowRight:"right",KeyD:"right" };
   let tickTimer: number | undefined;
   function scheduleTick(): void {
     if (tickTimer !== undefined) window.clearTimeout(tickTimer);
@@ -123,16 +123,16 @@ if (!launcher) {
     scheduleTick();
   }
   window.addEventListener("keydown", event => {
-    if (event.key === "Escape") { if (settingsOpen) setSettings(false); else void command("tuck_game"); return; }
+    if (event.code === "Escape") { if (settingsOpen) setSettings(false); else void command("tuck_game"); return; }
     if (settingsOpen || event.altKey || event.metaKey || event.ctrlKey || (event.target as HTMLElement).closest("button")) return;
-    const direction = directions[event.key];
+    const direction = directions[event.code];
     if (direction) {
       event.preventDefault();
       if (game.phase === "waiting") game.reset();
       if (game.phase === "running" && game.steer(direction)) {game.advance();scheduleTick();}
     }
-    else if (event.key === " ") {event.preventDefault();game.togglePause();}
-    else if (event.key.toLowerCase() === "r") game.reset();
+    else if (event.code === "Space") {event.preventDefault();game.togglePause();}
+    else if (event.code === "KeyR") game.reset();
     render();
   });
   window.addEventListener("blur", () => { if (game.phase === "running") {game.phase = "paused";render();} });
